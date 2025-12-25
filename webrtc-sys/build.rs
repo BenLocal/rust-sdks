@@ -58,6 +58,7 @@ fn main() {
 
     if is_desktop {
         rust_files.push("src/desktop_capturer.rs");
+        rust_files.push("src/video_capturer.rs");
     }
 
     let mut builder = cxx_build::bridges(rust_files);

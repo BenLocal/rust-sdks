@@ -35,6 +35,8 @@ pub mod rtp_parameters;
 pub mod rtp_receiver;
 pub mod rtp_sender;
 pub mod rtp_transceiver;
+#[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
+pub mod video_capturer;
 pub mod video_frame;
 pub mod video_frame_buffer;
 pub mod video_track;
