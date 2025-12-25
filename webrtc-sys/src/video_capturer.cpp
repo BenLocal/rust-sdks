@@ -2,6 +2,30 @@
 
 namespace livekit {
 
+int32_t VideoCapturer::start_capture(
+    const VideoCaptureCapability capability) const {
+  webrtc::VideoCaptureCapability webrtc_capability;
+  webrtc_capability.width = capability.width;
+  webrtc_capability.height = capability.height;
+  webrtc_capability.maxFPS = capability.maxFPS;
+  webrtc_capability.videoType = webrtc::VideoType::kI420;
+  webrtc_capability.interlaced = capability.interlaced;
+  return capture_module_->StartCapture(webrtc_capability);
+}
+
+int32_t VideoCapturer::stop_capture() const {
+  return capture_module_->StopCapture();
+}
+
+void VideoCapturer::register_capture_data_callback(
+    const std::shared_ptr<NativeVideoSink>& sink) const {
+  capture_module_->RegisterCaptureDataCallback(sink.get());
+}
+
+void VideoCapturer::deregister_capture_data_callback() const {
+  capture_module_->DeRegisterCaptureDataCallback();
+}
+
 rust::Vec<VideoDevice> get_video_device_list() {
   rust::Vec<VideoDevice> devices = {};
   std::unique_ptr<webrtc::VideoCaptureModule::DeviceInfo> info(
@@ -26,5 +50,14 @@ rust::Vec<VideoDevice> get_video_device_list() {
     }
   }
   return devices;
+}
+
+std::unique_ptr<VideoCapturer> new_video_capturer() {
+  webrtc::scoped_refptr<webrtc::VideoCaptureModule> capture_module(
+      webrtc::VideoCaptureFactory::Create(0));
+  if (!capture_module) {
+    return nullptr;
+  }
+  return std::make_unique<VideoCapturer>(capture_module);
 }
 }  // namespace livekit
