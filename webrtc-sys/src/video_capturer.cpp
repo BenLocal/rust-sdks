@@ -8,7 +8,7 @@ int32_t VideoCapturer::start_capture(
   webrtc_capability.width = capability.width;
   webrtc_capability.height = capability.height;
   webrtc_capability.maxFPS = capability.maxFPS;
-  webrtc_capability.videoType = webrtc::VideoType::kI420;
+  webrtc_capability.videoType = webrtc::VideoType::kUnknown;
   webrtc_capability.interlaced = capability.interlaced;
   return capture_module_->StartCapture(webrtc_capability);
 }

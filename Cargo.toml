@@ -27,6 +27,7 @@ members = [
     "examples/send_bytes",
     "examples/webhooks",
     "examples/wgpu_room",
+    "examples/local_video",
 ]
 
 [workspace.dependencies]

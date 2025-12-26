@@ -1,7 +1,5 @@
-use cxx::UniquePtr;
-
 #[cxx::bridge(namespace = "livekit")]
-mod ffi {
+pub mod ffi {
 
     #[derive(Clone)]
     struct VideoDevice {
@@ -14,6 +12,7 @@ mod ffi {
         // Product ID of the device
         pid: String,
     }
+
     #[derive(Clone)]
     struct VideoCaptureCapability {
         width: i32,

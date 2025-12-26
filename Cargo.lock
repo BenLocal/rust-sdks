@@ -3204,6 +3204,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "local_video"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "cpal",
+ "env_logger 0.10.2",
+ "futures-util",
+ "libwebrtc",
+ "livekit",
+ "livekit-api",
+ "log",
+ "tokio",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
