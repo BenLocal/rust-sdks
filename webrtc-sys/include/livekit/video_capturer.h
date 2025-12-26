@@ -34,5 +34,5 @@ class VideoCapturer {
 
 rust::Vec<VideoDevice> get_video_device_list();
 
-std::unique_ptr<VideoCapturer> new_video_capturer();
+std::unique_ptr<VideoCapturer> new_video_capturer(rust::Str deviceUniqueIdUTF8);
 }  // namespace livekit

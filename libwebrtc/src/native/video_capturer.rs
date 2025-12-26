@@ -1,5 +1,18 @@
-use cxx::{SharedPtr, UniquePtr};
+use std::{
+    pin::Pin,
+    sync::Arc,
+    task::{Context, Poll},
+};
 
+use cxx::{SharedPtr, UniquePtr};
+use livekit_runtime::Stream;
+use tokio::sync::mpsc;
+use webrtc_sys::video_track as sys_vt;
+
+use super::video_frame::new_video_frame_buffer;
+use crate::video_frame::{BoxVideoFrame, VideoFrame};
+
+#[derive(Default)]
 pub(crate) struct VideoCaptureCapability {
     width: i32,
     height: i32,
@@ -16,13 +29,24 @@ pub(crate) struct VideoDevice {
 }
 
 impl VideoCapturer {
-    pub(crate) fn new() -> Option<Self> {
-        let sys_handle = webrtc_sys::video_capturer::ffi::new_video_capturer();
+    pub(crate) fn new(unique_id: &str) -> Option<Self> {
+        let sys_handle = webrtc_sys::video_capturer::ffi::new_video_capturer(unique_id);
         if sys_handle.is_null() {
             None
         } else {
             Some(Self { sys_handle })
         }
+    }
+
+    pub(crate) fn register_callback(&self) -> NativeVideoCapturerStream {
+        let (frame_tx, frame_rx) = mpsc::unbounded_channel();
+        let observer = Arc::new(VideoCapturerTrackObserver { frame_tx });
+        let native_sink = sys_vt::ffi::new_native_video_sink(Box::new(
+            sys_vt::VideoSinkWrapper::new(observer.clone()),
+        ));
+        self.sys_handle.register_capture_data_callback(&native_sink);
+
+        NativeVideoCapturerStream { _native_sink: native_sink, frame_rx }
     }
 
     pub(crate) fn start(&self, capability: VideoCaptureCapability) {
@@ -35,19 +59,12 @@ impl VideoCapturer {
         self.sys_handle.start_capture(capability);
     }
 
-    pub(crate) fn stop(&self) {
-        self.sys_handle.stop_capture();
-    }
-
-    pub(crate) fn register_callback(
-        &self,
-        sink: SharedPtr<webrtc_sys::video_track::ffi::NativeVideoSink>,
-    ) {
-        self.sys_handle.register_capture_data_callback(&sink);
-    }
-
     pub(crate) fn unregister_callback(&self) {
         self.sys_handle.deregister_capture_data_callback();
+    }
+
+    pub(crate) fn stop(&self) {
+        self.sys_handle.stop_capture();
     }
 
     pub(crate) fn device_list() -> Vec<VideoDevice> {
@@ -74,4 +91,47 @@ impl VideoDevice {
     pub(crate) fn product_id(&self) -> String {
         self.sys_handle.pid.clone()
     }
+}
+
+pub struct NativeVideoCapturerStream {
+    _native_sink: SharedPtr<sys_vt::ffi::NativeVideoSink>,
+    frame_rx: mpsc::UnboundedReceiver<BoxVideoFrame>,
+}
+
+impl NativeVideoCapturerStream {
+    fn close(&mut self) {
+        self.frame_rx.close();
+    }
+}
+
+impl Drop for NativeVideoCapturerStream {
+    fn drop(&mut self) {
+        self.close();
+    }
+}
+
+impl Stream for NativeVideoCapturerStream {
+    type Item = BoxVideoFrame;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
+        self.frame_rx.poll_recv(cx)
+    }
+}
+
+struct VideoCapturerTrackObserver {
+    frame_tx: mpsc::UnboundedSender<BoxVideoFrame>,
+}
+
+impl sys_vt::VideoSink for VideoCapturerTrackObserver {
+    fn on_frame(&self, frame: UniquePtr<webrtc_sys::video_frame::ffi::VideoFrame>) {
+        let _ = self.frame_tx.send(VideoFrame {
+            rotation: frame.rotation().into(),
+            timestamp_us: frame.timestamp_us(),
+            buffer: new_video_frame_buffer(unsafe { frame.video_frame_buffer() }),
+        });
+    }
+
+    fn on_discarded_frame(&self) {}
+
+    fn on_constraints_changed(&self, _constraints: sys_vt::ffi::VideoTrackSourceConstraints) {}
 }

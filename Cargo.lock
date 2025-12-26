@@ -3208,7 +3208,6 @@ name = "local_video"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "clap",
  "cpal",
  "env_logger 0.10.2",
  "futures-util",

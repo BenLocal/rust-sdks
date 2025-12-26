@@ -94,6 +94,7 @@ fn main() {
 
     if is_desktop {
         builder.file("src/desktop_capturer.cpp");
+        builder.file("src/video_capturer.cpp");
     }
 
     let webrtc_dir = webrtc_sys_build::webrtc_dir();

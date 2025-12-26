@@ -1,4 +1,11 @@
-use crate::imp::video_capturer as vc_imp;
+use livekit_runtime::Stream;
+
+use crate::{imp::video_capturer as vc_imp, prelude::BoxVideoFrame};
+use std::{
+    pin::Pin,
+    sync::Arc,
+    task::{Context, Poll},
+};
 
 pub struct VideoCapturer {
     sys_handle: vc_imp::VideoCapturer,
@@ -9,8 +16,23 @@ pub struct VideoDevice {
 }
 
 impl VideoCapturer {
-    pub fn new() -> Option<Self> {
-        vc_imp::VideoCapturer::new().map(|i| Self { sys_handle: i })
+    pub fn open_device(unique_id: &str) -> Option<(Self, NativeVideoCapturerStream)> {
+        let m = vc_imp::VideoCapturer::new(unique_id).map(|i| Self { sys_handle: i })?;
+        let stream = m.sys_handle.register_callback();
+        Some((m, NativeVideoCapturerStream(stream)))
+    }
+
+    pub fn start(&self) {
+        self.sys_handle.start(vc_imp::VideoCaptureCapability::default());
+    }
+
+    pub fn stop(&self) {
+        self.sys_handle.stop();
+    }
+
+    #[allow(dead_code)]
+    pub fn unregister_callback(&self) {
+        self.sys_handle.unregister_callback();
     }
 
     pub fn device_list() -> Vec<VideoDevice> {
@@ -36,5 +58,15 @@ impl VideoDevice {
 
     pub fn product_id(&self) -> String {
         self.sys_handle.product_id()
+    }
+}
+
+pub struct NativeVideoCapturerStream(vc_imp::NativeVideoCapturerStream);
+
+impl Stream for NativeVideoCapturerStream {
+    type Item = BoxVideoFrame;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
+        Pin::new(&mut self.get_mut().0).poll_next(cx)
     }
 }

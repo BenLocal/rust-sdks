@@ -1,3 +1,5 @@
+use crate::impl_thread_safety;
+
 #[cxx::bridge(namespace = "livekit")]
 pub mod ffi {
 
@@ -28,7 +30,7 @@ pub mod ffi {
         type NativeVideoSink = crate::video_track::ffi::NativeVideoSink;
 
         fn get_video_device_list() -> Vec<VideoDevice>;
-        fn new_video_capturer() -> UniquePtr<VideoCapturer>;
+        fn new_video_capturer(deviceUniqueIdUTF8: &str) -> UniquePtr<VideoCapturer>;
 
         fn start_capture(self: &VideoCapturer, capability: VideoCaptureCapability) -> i32;
         fn stop_capture(self: &VideoCapturer) -> i32;
@@ -36,3 +38,5 @@ pub mod ffi {
         fn deregister_capture_data_callback(self: &VideoCapturer);
     }
 }
+
+impl_thread_safety!(ffi::VideoCapturer, Send + Sync);
