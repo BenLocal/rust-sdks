@@ -7,6 +7,35 @@ use std::{
     task::{Context, Poll},
 };
 
+pub struct VideoCaptureCapability {
+    width: i32,
+    height: i32,
+    max_fps: i32,
+    interlaced: bool,
+}
+
+impl VideoCaptureCapability {
+    pub fn new(width: i32, height: i32, max_fps: i32, interlaced: bool) -> Self {
+        Self { width, height, max_fps, interlaced }
+    }
+}
+
+impl Default for VideoCaptureCapability {
+    fn default() -> Self {
+        Self { width: 640, height: 480, max_fps: 30, interlaced: false }
+    }
+}
+
+impl Into<vc_imp::VideoCaptureCapability> for VideoCaptureCapability {
+    fn into(self) -> vc_imp::VideoCaptureCapability {
+        vc_imp::VideoCaptureCapability::default()
+            .set_width(self.width)
+            .set_height(self.height)
+            .set_max_fps(self.max_fps)
+            .set_interlaced(self.interlaced)
+    }
+}
+
 pub struct VideoCapturer {
     sys_handle: vc_imp::VideoCapturer,
 }
@@ -22,12 +51,12 @@ impl VideoCapturer {
         Some((m, NativeVideoCapturerStream(stream)))
     }
 
-    pub fn start(&self) {
-        self.sys_handle.start(vc_imp::VideoCaptureCapability::default());
+    pub fn start(&self, capability: VideoCaptureCapability) -> bool {
+        self.sys_handle.start(capability.into()) == 0
     }
 
-    pub fn stop(&self) {
-        self.sys_handle.stop();
+    pub fn stop(&self) -> bool {
+        self.sys_handle.stop() == 0
     }
 
     #[allow(dead_code)]

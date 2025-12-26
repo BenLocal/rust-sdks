@@ -20,6 +20,28 @@ pub(crate) struct VideoCaptureCapability {
     interlaced: bool,
 }
 
+impl VideoCaptureCapability {
+    pub(crate) fn set_width(mut self, width: i32) -> Self {
+        self.width = width;
+        self
+    }
+
+    pub(crate) fn set_height(mut self, height: i32) -> Self {
+        self.height = height;
+        self
+    }
+
+    pub(crate) fn set_max_fps(mut self, max_fps: i32) -> Self {
+        self.max_fps = max_fps;
+        self
+    }
+
+    pub(crate) fn set_interlaced(mut self, interlaced: bool) -> Self {
+        self.interlaced = interlaced;
+        self
+    }
+}
+
 pub(crate) struct VideoCapturer {
     sys_handle: UniquePtr<webrtc_sys::video_capturer::ffi::VideoCapturer>,
 }
@@ -49,22 +71,22 @@ impl VideoCapturer {
         NativeVideoCapturerStream { _native_sink: native_sink, frame_rx }
     }
 
-    pub(crate) fn start(&self, capability: VideoCaptureCapability) {
+    pub(crate) fn start(&self, capability: VideoCaptureCapability) -> i32 {
         let capability = webrtc_sys::video_capturer::ffi::VideoCaptureCapability {
             width: capability.width,
             height: capability.height,
             maxFPS: capability.max_fps,
             interlaced: capability.interlaced,
         };
-        self.sys_handle.start_capture(capability);
+        self.sys_handle.start_capture(capability)
     }
 
     pub(crate) fn unregister_callback(&self) {
         self.sys_handle.deregister_capture_data_callback();
     }
 
-    pub(crate) fn stop(&self) {
-        self.sys_handle.stop_capture();
+    pub(crate) fn stop(&self) -> i32 {
+        self.sys_handle.stop_capture()
     }
 
     pub(crate) fn device_list() -> Vec<VideoDevice> {

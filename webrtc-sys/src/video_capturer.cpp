@@ -54,9 +54,9 @@ rust::Vec<VideoDevice> get_video_device_list() {
 
 std::unique_ptr<VideoCapturer> new_video_capturer(
     rust::Str deviceUniqueIdUTF8) {
-  auto id = deviceUniqueIdUTF8.data();
+  std::string id_str(deviceUniqueIdUTF8.data(), deviceUniqueIdUTF8.size());
   webrtc::scoped_refptr<webrtc::VideoCaptureModule> capture_module(
-      webrtc::VideoCaptureFactory::Create(id));
+      webrtc::VideoCaptureFactory::Create(id_str.c_str()));
   if (capture_module.get() == nullptr) {
     return nullptr;
   }

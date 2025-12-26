@@ -3,7 +3,7 @@ use std::env;
 use futures_util::StreamExt as _;
 use libwebrtc::{
     prelude::{RtcVideoSource, VideoResolution},
-    video_capturer::VideoCapturer,
+    video_capturer::{VideoCaptureCapability, VideoCapturer},
     video_source::native::NativeVideoSource,
 };
 use livekit::{
@@ -62,7 +62,9 @@ async fn main() -> anyhow::Result<()> {
         RtcVideoSource::Native(buffer_source.clone()),
     );
 
-    video_capturer.start();
+    if !video_capturer.start(VideoCaptureCapability::default()) {
+        panic!("Can not start video capturer");
+    }
 
     tokio::spawn(async move {
         while let Some(frame) = stream.next().await {
