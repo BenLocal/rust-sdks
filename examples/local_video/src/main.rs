@@ -13,9 +13,37 @@ use livekit::{
 };
 use livekit_api::access_token::{self};
 
+#[cfg(target_os = "macos")]
+mod camera_permission;
+#[cfg(target_os = "macos")]
+use camera_permission::{check_camera_permission, request_camera_permission};
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
+
+    // 检查并申请摄像头权限 (仅 macOS)
+    #[cfg(target_os = "macos")]
+    {
+        println!("Checking camera permission...");
+        let status = check_camera_permission();
+        println!("Current camera permission status: {:?}", status);
+
+        if !status.is_authorized() {
+            println!("Requesting camera permission...");
+            let granted = request_camera_permission().await;
+            if !granted {
+                eprintln!(
+                    "Camera permission denied. Please grant camera access in System Settings."
+                );
+                return Err(anyhow::anyhow!("Camera permission denied"));
+            }
+            println!("Camera permission granted!");
+        } else {
+            println!("Camera permission already granted.");
+        }
+    }
+
     let device_list = VideoCapturer::device_list();
     for device in device_list.iter() {
         println!(

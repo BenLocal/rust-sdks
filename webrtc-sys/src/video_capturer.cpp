@@ -1,5 +1,16 @@
 #include "livekit/video_capturer.h"
 
+#include "modules/video_capture/video_capture_options.h"
+
+#if defined(__APPLE__)
+// Forward declaration for macOS-specific function
+namespace livekit {
+rust::Vec<VideoDevice> get_video_device_list_macos();
+std::unique_ptr<VideoCapturer> new_video_capturer_macos(
+    rust::Str deviceUniqueIdUTF8);
+}  // namespace livekit
+#endif
+
 namespace livekit {
 
 int32_t VideoCapturer::start_capture(
@@ -27,16 +38,31 @@ void VideoCapturer::deregister_capture_data_callback() const {
 }
 
 rust::Vec<VideoDevice> get_video_device_list() {
-  rust::Vec<VideoDevice> devices = {};
+#if defined(__APPLE__)
+  // On macOS, use Objective-C API which properly handles permissions
+  return get_video_device_list_macos();
+#else
+  rust::Vec<VideoDevice> devices;
+  // On other platforms, use the C++ API
   std::unique_ptr<webrtc::VideoCaptureModule::DeviceInfo> info(
       webrtc::VideoCaptureFactory::CreateDeviceInfo());
+
+  // If that fails, try with VideoCaptureOptions
   if (!info) {
+    webrtc::VideoCaptureOptions options;
+    info.reset(webrtc::VideoCaptureFactory::CreateDeviceInfo(&options));
+  }
+
+  if (!info) {
+    // Both methods failed - likely a permission or initialization issue
     return devices;
   }
+
   int num_devices = info->NumberOfDevices();
   if (num_devices == 0) {
     return devices;
   }
+
   constexpr uint32_t nameSize = 256;
   constexpr uint32_t pidSize = 256;
   constexpr uint32_t uidSize = 256;
@@ -49,11 +75,17 @@ rust::Vec<VideoDevice> get_video_device_list() {
       devices.push_back(VideoDevice{i, name, pid, uid});
     }
   }
+
   return devices;
+#endif
 }
 
 std::unique_ptr<VideoCapturer> new_video_capturer(
     rust::Str deviceUniqueIdUTF8) {
+#if defined(__APPLE__)
+  // On macOS, use Objective-C API or VideoCaptureOptions
+  return new_video_capturer_macos(deviceUniqueIdUTF8);
+#else
   std::string id_str(deviceUniqueIdUTF8.data(), deviceUniqueIdUTF8.size());
   webrtc::scoped_refptr<webrtc::VideoCaptureModule> capture_module(
       webrtc::VideoCaptureFactory::Create(id_str.c_str()));
@@ -61,5 +93,6 @@ std::unique_ptr<VideoCapturer> new_video_capturer(
     return nullptr;
   }
   return std::make_unique<VideoCapturer>(capture_module);
+#endif
 }
 }  // namespace livekit
