@@ -19,6 +19,7 @@
 
 // Include the header to get full type definitions
 #include "livekit/video_capturer.h"
+#include "livekit/video_frame_buffer.h"
 
 #include "modules/video_capture/video_capture.h"
 #include "modules/video_capture/video_capture_defines.h"
@@ -153,6 +154,14 @@ class MacOSVideoCaptureAdapter : public webrtc::VideoCaptureModule {
       return -1;
     }
 
+    // Disable Reactions (macOS 15+ video effects)
+    // This prevents confetti, hearts, balloons, and other visual effects from appearing
+    if (@available(macOS 13.0, *)) {
+      if ([capture_session_ respondsToSelector:@selector(setReactionEffectsEnabled:)]) {
+        [capture_session_ performSelector:@selector(setReactionEffectsEnabled:) withObject:@NO];
+      }
+    }
+
     // Start the session
     [capture_session_ startRunning];
     
@@ -221,63 +230,21 @@ class MacOSVideoCaptureAdapter : public webrtc::VideoCaptureModule {
       return;
     }
 
-    CVPixelBufferLockBaseAddress(pixelBuffer, kCVPixelBufferLock_ReadOnly);
-
-    const int width = CVPixelBufferGetWidth(pixelBuffer);
-    const int height = CVPixelBufferGetHeight(pixelBuffer);
-    
     // Get timestamp
     CMTime timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
     int64_t timestamp_us = CMTimeGetSeconds(timestamp) * 1000000;
 
-    // Create I420 buffer
-    rtc::scoped_refptr<webrtc::I420Buffer> i420_buffer = 
-        webrtc::I420Buffer::Create(width, height);
+    // Retain the pixel buffer before creating the native buffer
+    // The native buffer will take ownership and release it
+    CVPixelBufferRetain(pixelBuffer);
 
-    // Convert NV12 to I420
-    OSType pixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer);
-    
-    if (pixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange ||
-        pixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) {
-      // NV12 format
-      const uint8_t* y_plane = 
-          static_cast<const uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0));
-      const uint8_t* uv_plane = 
-          static_cast<const uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1));
-      
-      const int y_stride = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0);
-      const int uv_stride = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1);
+    // Create native buffer directly from CVPixelBuffer (zero-copy)
+    std::unique_ptr<livekit::VideoFrameBuffer> native_buffer = 
+        livekit::new_native_buffer_from_platform_image_buffer(pixelBuffer);
 
-      libyuv::NV12ToI420(
-          y_plane, y_stride,
-          uv_plane, uv_stride,
-          i420_buffer->MutableDataY(), i420_buffer->StrideY(),
-          i420_buffer->MutableDataU(), i420_buffer->StrideU(),
-          i420_buffer->MutableDataV(), i420_buffer->StrideV(),
-          width, height);
-    } else {
-      // Other formats - try to convert via ARGB
-      const uint8_t* src = 
-          static_cast<const uint8_t*>(CVPixelBufferGetBaseAddress(pixelBuffer));
-      const int src_stride = CVPixelBufferGetBytesPerRow(pixelBuffer);
-      
-      // Create temporary ARGB buffer
-      std::unique_ptr<uint8_t[]> argb_buffer(new uint8_t[width * height * 4]);
-      
-      // Convert to ARGB first (assuming BGRA input)
-      libyuv::ARGBToI420(
-          src, src_stride,
-          i420_buffer->MutableDataY(), i420_buffer->StrideY(),
-          i420_buffer->MutableDataU(), i420_buffer->StrideU(),
-          i420_buffer->MutableDataV(), i420_buffer->StrideV(),
-          width, height);
-    }
-
-    CVPixelBufferUnlockBaseAddress(pixelBuffer, kCVPixelBufferLock_ReadOnly);
-
-    // Create VideoFrame
+    // Create VideoFrame with native buffer
     webrtc::VideoFrame frame = webrtc::VideoFrame::Builder()
-        .set_video_frame_buffer(i420_buffer)
+        .set_video_frame_buffer(native_buffer->get())
         .set_timestamp_us(timestamp_us)
         .set_rotation(webrtc::kVideoRotation_0)
         .build();
