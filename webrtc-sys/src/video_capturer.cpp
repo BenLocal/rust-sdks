@@ -44,9 +44,9 @@ rust::Vec<VideoDevice> get_video_device_list() {
     char name[nameSize] = {};
     char uid[uidSize] = {};
     char pid[pidSize] = {};
-    if (info->GetDeviceName(i, name, nameSize, pid, pidSize, uid, uidSize) ==
+    if (info->GetDeviceName(i, name, nameSize, uid, uidSize, pid, pidSize) ==
         0) {
-      devices.push_back(VideoDevice{i, name, pid, uid});
+      devices.push_back(VideoDevice{i, name, uid, pid});
     }
   }
   return devices;
