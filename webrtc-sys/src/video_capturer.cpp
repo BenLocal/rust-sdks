@@ -1,16 +1,5 @@
 #include "livekit/video_capturer.h"
 
-#include "modules/video_capture/video_capture_options.h"
-
-#if defined(__APPLE__)
-// Forward declaration for macOS-specific function
-namespace livekit {
-rust::Vec<VideoDevice> get_video_device_list_macos();
-std::unique_ptr<VideoCapturer> new_video_capturer_macos(
-    rust::Str deviceUniqueIdUTF8);
-}  // namespace livekit
-#endif
-
 namespace livekit {
 
 int32_t VideoCapturer::start_capture(
