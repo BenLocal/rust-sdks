@@ -463,6 +463,11 @@ impl LocalParticipant {
         let publication = self.remove_publication(sid);
         if let Some(TrackPublication::Local(publication)) = publication {
             let track = publication.track().unwrap();
+
+            if let Some(transceiver) = track.transceiver() {
+                let _ = transceiver.stop();
+            }
+
             let sender = track.transceiver().unwrap().sender();
 
             self.inner.rtc_engine.remove_track(sender)?;
