@@ -1,0 +1,17 @@
+[package]
+name = "rtsp_h264_passthrough"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+env_logger = "0.10"
+livekit = { workspace = true, features = ["rustls-tls-native-roots"] }
+livekit-api = { workspace = true, features = ["rustls-tls-native-roots"] }
+log = "0.4"
+anyhow = "1.0"
+libwebrtc = { workspace = true }
+bytes = "1.0"
+async-trait = "0.1"
+

@@ -58,6 +58,25 @@ impl LocalVideoTrack {
                     .pc_factory()
                     .create_video_track(&libwebrtc::native::create_random_uuid(), native_source)
             }
+            #[cfg(not(target_arch = "wasm32"))]
+            RtcVideoSource::Encoded(encoded_source) => {
+                // For encoded source, we still need to create a video track
+                // to trigger encoder creation. We'll use a dummy native source
+                // with the same resolution, but frames will be injected via
+                // the passthrough encoder.
+                use libwebrtc::peer_connection_factory::native::PeerConnectionFactoryExt;
+                use libwebrtc::video_source::native::NativeVideoSource;
+                use libwebrtc::video_source::VideoResolution;
+
+                let resolution = VideoResolution {
+                    width: encoded_source.width(),
+                    height: encoded_source.height(),
+                };
+                let dummy_source = NativeVideoSource::new(resolution);
+                LkRuntime::instance()
+                    .pc_factory()
+                    .create_video_track(&libwebrtc::native::create_random_uuid(), dummy_source)
+            }
             _ => panic!("unsupported video source"),
         };
 

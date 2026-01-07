@@ -16,11 +16,14 @@
 
 #include "livekit/video_encoder_factory.h"
 
+#include <mutex>
+
 #include "api/environment/environment_factory.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_encoder.h"
 #include "api/video_codecs/video_encoder_factory_template.h"
 #include "livekit/objc_video_factory.h"
+#include "livekit/passthrough_video_encoder.h"
 #include "media/base/media_constants.h"
 #include "media/engine/simulcast_encoder_adapter.h"
 #include "rtc_base/logging.h"
@@ -45,6 +48,25 @@
 #include "vaapi/vaapi_encoder_factory.h"
 #endif
 
+// Global passthrough encoder factory instance (for accessing created encoders)
+namespace livekit {
+namespace {
+std::shared_ptr<PassthroughVideoEncoderFactory> g_passthrough_factory;
+std::mutex g_passthrough_mutex;
+}  // namespace
+
+PassthroughVideoEncoderFactory* GetGlobalPassthroughEncoderFactory() {
+  std::lock_guard<std::mutex> lock(g_passthrough_mutex);
+  return g_passthrough_factory.get();
+}
+
+void SetGlobalPassthroughEncoderFactory(
+    std::shared_ptr<PassthroughVideoEncoderFactory> factory) {
+  std::lock_guard<std::mutex> lock(g_passthrough_mutex);
+  g_passthrough_factory = factory;
+}
+}  // namespace livekit
+
 namespace livekit {
 
 using Factory = webrtc::VideoEncoderFactoryTemplate<
@@ -58,6 +80,11 @@ using Factory = webrtc::VideoEncoderFactoryTemplate<
     webrtc::LibvpxVp9EncoderTemplateAdapter>;
 
 VideoEncoderFactory::InternalFactory::InternalFactory() {
+  // Add passthrough encoder factory first (highest priority for H.264)
+  auto passthrough_factory = std::make_shared<PassthroughVideoEncoderFactory>();
+  SetGlobalPassthroughEncoderFactory(passthrough_factory);
+  factories_.push_back(passthrough_factory);
+
 #ifdef __APPLE__
   factories_.push_back(livekit::CreateObjCVideoEncoderFactory());
 #endif

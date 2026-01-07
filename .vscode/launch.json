@@ -2,6 +2,24 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug executable 'local_video'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "run",
+                    "--bin=local_video",
+                    "--package=local_video"
+                ]
+            },
+            "args": [],
+            "env": {
+                "LIVEKIT_URL": "http://192.168.31.111:7880",
+                "LIVEKIT_API_KEY": "APIVg6jLoiMwFHp",
+                "LIVEKIT_API_SECRET": "O7CKx1ptmrBOtM6bMePQq0derknyE5jbjnYXlRm4oG0",
+            },
+        },
+        {
             "type": "lldb",
             "request": "launch",
             "name": "wgpu_room(debug)",
