@@ -1,6 +1,6 @@
 #include "livekit/video_capturer.h"
 
-namespace livekit {
+namespace livekit_ffi {
 
 int32_t VideoCapturer::start_capture(
     const VideoCaptureCapability capability) const {
@@ -84,4 +84,4 @@ std::unique_ptr<VideoCapturer> new_video_capturer(
   return std::make_unique<VideoCapturer>(capture_module);
 #endif
 }
-}  // namespace livekit
+}  // namespace livekit_ffi

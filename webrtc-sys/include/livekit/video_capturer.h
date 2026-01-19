@@ -5,16 +5,16 @@
 #include "modules/video_capture/video_capture_options.h"
 #include "rust/cxx.h"
 
-namespace livekit {
+namespace livekit_ffi {
 class VideoCapturer;
 class VideoDevice;
 class VideoCaptureCapability;
-}  // namespace livekit
+}  // namespace livekit_ffi
 
 #include "livekit/video_track.h"
 #include "webrtc-sys/src/video_capturer.rs.h"
 
-namespace livekit {
+namespace livekit_ffi {
 class VideoCapturer {
  public:
   explicit VideoCapturer(
@@ -42,4 +42,4 @@ std::unique_ptr<VideoCapturer> new_video_capturer_macos(
 rust::Vec<VideoDevice> get_video_device_list();
 
 std::unique_ptr<VideoCapturer> new_video_capturer(rust::Str deviceUniqueIdUTF8);
-}  // namespace livekit
+}  // namespace livekit_ffi

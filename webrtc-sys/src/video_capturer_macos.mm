@@ -31,18 +31,18 @@
 #include <memory>
 #include <string>
 
-namespace livekit {
+namespace livekit_ffi {
 
 class MacOSVideoCaptureAdapter;
 
-}  // namespace livekit
+}  // namespace livekit_ffi
 
 // Objective-C delegate to receive video frames from AVCaptureVideoDataOutput
 @interface VideoCapturerDelegate : NSObject<AVCaptureVideoDataOutputSampleBufferDelegate>
 @property(nonatomic, assign) livekit::MacOSVideoCaptureAdapter* adapter;
 @end
 
-namespace livekit {
+namespace livekit_ffi {
 
 // Adapter class that wraps AVCaptureSession to implement VideoCaptureModule interface
 class MacOSVideoCaptureAdapter : public webrtc::VideoCaptureModule {
@@ -264,7 +264,7 @@ class MacOSVideoCaptureAdapter : public webrtc::VideoCaptureModule {
   dispatch_queue_t queue_;
 };
 
-}  // namespace livekit
+}  // namespace livekit_ffi
 
 // Implementation of VideoCapturerDelegate
 @implementation VideoCapturerDelegate
@@ -285,7 +285,7 @@ class MacOSVideoCaptureAdapter : public webrtc::VideoCaptureModule {
 
 @end
 
-namespace livekit {
+namespace livekit_ffi {
 
 rust::Vec<VideoDevice> get_video_device_list_macos() {
   rust::Vec<VideoDevice> devices;
@@ -358,4 +358,4 @@ std::unique_ptr<VideoCapturer> new_video_capturer_macos(
   return std::make_unique<VideoCapturer>(adapter);
 }
 
-}  // namespace livekit
+}  // namespace livekit_ffi
