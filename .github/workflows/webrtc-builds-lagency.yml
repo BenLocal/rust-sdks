@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: WebRTC builds
+name: WebRTC builds (Lagency)
 on:
-  push:
-    tags:
-      - "webrtc-*"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
 
 jobs:
   build:
@@ -25,66 +27,17 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - name: win
-            os: windows-2022
-            cmd: .\build_windows.cmd
-            arch: x64
-
-          - name: win
-            os: windows-2022
-            cmd: .\build_windows.cmd
-            arch: arm64
-
-          - name: mac
-            os: macos-latest
-            cmd: ./build_macos.sh
-            arch: x64
-
-          - name: mac
-            os: macos-latest
-            cmd: ./build_macos.sh
-            arch: arm64
-
-          - name: linux
-            os: ubuntu-latest
+          - name: linux-lagency
+            os: ubuntu-20.04
             cmd: ./build_linux.sh
             arch: x64
 
-          - name: linux
-            os: ubuntu-latest
+          - name: linux-lagency
+            os: ubuntu-20.04
             cmd: ./build_linux.sh
             arch: arm64
-
-          - name: android
-            os: ubuntu-latest
-            cmd: ./build_android.sh
-            arch: arm64
-
-          - name: android
-            os: ubuntu-latest
-            cmd: ./build_android.sh
-            arch: arm
-
-          - name: android
-            os: ubuntu-latest
-            cmd: ./build_android.sh
-            arch: x64
-
-          - name: ios
-            out: ios-device-arm64
-            os: macos-latest
-            cmd: ./build_ios.sh
-            arch: arm64
-
-          - name: ios
-            out: ios-simulator-arm64
-            os: macos-latest
-            cmd: ./build_ios.sh
-            arch: arm64
-            buildargs: --environment simulator
         profile:
           - release
-    #          - debug
 
     name: Build webrtc (${{ matrix.target.name }}-${{ matrix.target.arch }}-${{ matrix.profile }}) ${{ matrix.target.buildargs }}
     runs-on: ${{ matrix.target.os }}
@@ -127,7 +80,7 @@ jobs:
           aarch64-linux-gnu-g++-14 --version
 
       - name: Set GCC 14 as default (optional)
-        if: ${{ matrix.target.os == 'ubuntu-latest' }}
+        if: ${{ matrix.target.os == 'ubuntu-latest' || matrix.target.os == 'ubuntu-20.04' }}
         run: |
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 140 --slave /usr/bin/g++ g++ /usr/bin/g++-14
           sudo update-alternatives --config gcc
@@ -137,7 +90,7 @@ jobs:
           aarch64-linux-gnu-gcc --version
       
       - name: Install linux dependencies
-        if: ${{ matrix.target.os == 'ubuntu-latest' }}
+        if: ${{ matrix.target.os == 'ubuntu-latest' || matrix.target.os == 'ubuntu-20.04' }}
         run: |
           sudo apt update -y
           sudo apt install -y ninja-build pkg-config openjdk-11-jdk
