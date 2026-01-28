@@ -55,6 +55,16 @@ jobs:
             cmd: ./build_linux.sh
             arch: arm64
 
+          - name: linux-lagency
+            os: ubuntu-20.04
+            cmd: ./build_linux.sh
+            arch: x64
+
+          - name: linux-lagency
+            os: ubuntu-20.04
+            cmd: ./build_linux.sh
+            arch: arm64
+
           - name: android
             os: ubuntu-latest
             cmd: ./build_android.sh
